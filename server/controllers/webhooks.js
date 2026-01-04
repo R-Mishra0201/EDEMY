@@ -16,21 +16,37 @@ export const clerkWebhooks = async (req, res) => {
 
     const { data, type } = evt;
 
+    // SAFELY extract fields
+    const email =
+      data.email_addresses && data.email_addresses.length > 0
+        ? data.email_addresses[0].email_address
+        : null;
+
+    const name = `${data.first_name || ""} ${data.last_name || ""}`.trim();
+
     switch (type) {
       case "user.created": {
-        await User.create({
-          _id: data.id,
-          email: data.email_addresses[0].email_address,
-          name: `${data.first_name || ""} ${data.last_name || ""}`,
-          imageUrl: data.image_url,
-        });
+        if (!email) break;
+
+        await User.findByIdAndUpdate(
+          data.id,
+          {
+            _id: data.id,
+            email,
+            name,
+            imageUrl: data.image_url,
+          },
+          { upsert: true } // prevents duplicate key crash
+        );
         break;
       }
 
       case "user.updated": {
+        if (!email) break;
+
         await User.findByIdAndUpdate(data.id, {
-          email: data.email_addresses[0].email_address,
-          name: `${data.first_name || ""} ${data.last_name || ""}`,
+          email,
+          name,
           imageUrl: data.image_url,
         });
         break;
@@ -47,7 +63,7 @@ export const clerkWebhooks = async (req, res) => {
 
     res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Webhook Error:", error.message);
-    res.status(400).json({ success: false });
+    console.error("Webhook failure:", error.message);
+    res.status(200).json({ success: false }); // IMPORTANT: still return 200
   }
 };
