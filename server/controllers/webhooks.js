@@ -1,57 +1,53 @@
 import { Webhook } from "svix";
 import User from "../models/User.js";
 
-// API controller function to manage clerk user with database
+export const clerkWebhooks = async (req, res) => {
+  try {
+    const payload = req.body.toString();
+    const headers = req.headers;
 
-export const clerkWebhooks = async (req,res)=>{
-    try{
-        const whook = new Webhook(process.env.CLERK_WEBHOOK_SECRET)
+    const whook = new Webhook(process.env.CLERK_WEBHOOK_SECRET);
 
-        await whook.verify(JSON.stringify(req.body),{
-            "svix-id":req.headers["svix-id"],
-            "svix-timestamp":req.header["svix-timestamp"],
-            "svix-signature" : req.headers["svix-signature"]
-        })
-        const {data , type} = req.body
+    const evt = whook.verify(payload, {
+      "svix-id": headers["svix-id"],
+      "svix-timestamp": headers["svix-timestamp"],
+      "svix-signature": headers["svix-signature"],
+    });
 
+    const { data, type } = evt;
 
-            switch (type) {
-                case "user.created":
-                    {
-                        const userData = {
-                            _id : data.id,
-                            email : data.email_addresses[0].email_address,
-                            name : data.first_name + " " + data.last_name,
-                            imageUrl : data.image_url,
+    switch (type) {
+      case "user.created": {
+        await User.create({
+          _id: data.id,
+          email: data.email_addresses[0].email_address,
+          name: `${data.first_name || ""} ${data.last_name || ""}`,
+          imageUrl: data.image_url,
+        });
+        break;
+      }
 
-                        }
-                        await User.create(userData)
-                        res.json({})
-                        break;
-                    }
-                case "user.updates":
-                    {
-                        const userData = {
-                            email : data.email_address[0].email_address,
-                            name : data.first_name + " " + data.last_name,
-                            imageUrl : data.image_url,
+      case "user.updated": {
+        await User.findByIdAndUpdate(data.id, {
+          email: data.email_addresses[0].email_address,
+          name: `${data.first_name || ""} ${data.last_name || ""}`,
+          imageUrl: data.image_url,
+        });
+        break;
+      }
 
-                        }
-                        await User.findByIdAndUpdate(data.id,userData)
-                        res.json({})
-                        break;
-                    }
-                case "user.deleted":
-                    {
-                        await User.findByIdAndDelete(data.id)
-                        res.json({})
-                        break;
-                    }
-                default:
-                    break;
-            }
+      case "user.deleted": {
+        await User.findByIdAndDelete(data.id);
+        break;
+      }
 
-    } catch (error){
-        res.json({sucess: false,message : error.message})
+      default:
+        break;
     }
-}
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("Webhook Error:", error.message);
+    res.status(400).json({ success: false });
+  }
+};
