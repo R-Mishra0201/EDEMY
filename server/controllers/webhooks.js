@@ -3,7 +3,7 @@ import User from "../models/User.js";
 
 export const clerkWebhooks = async (req, res) => {
   try {
-    const payload = req.body.toString();
+    const payload = req.body.toString(); // RAW body
     const headers = req.headers;
 
     const whook = new Webhook(process.env.CLERK_WEBHOOK_SECRET);
@@ -16,7 +16,6 @@ export const clerkWebhooks = async (req, res) => {
 
     const { data, type } = evt;
 
-    // SAFELY extract fields
     const email =
       data.email_addresses && data.email_addresses.length > 0
         ? data.email_addresses[0].email_address
@@ -61,9 +60,11 @@ export const clerkWebhooks = async (req, res) => {
         break;
     }
 
+    // IMPORTANT: always return 200
     res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Webhook failure:", error.message);
-    res.status(200).json({ success: false }); // IMPORTANT: still return 200
+    console.error("Webhook Error:", error.message);
+    // still return 200 to stop retries
+    res.status(200).json({ success: false });
   }
 };
