@@ -65,53 +65,55 @@ export const stripeWebhooks = async (request, response) => {
 
   // Handle Event Types
   switch (event.type) {
-    case 'payment_intent.succeeded': {
+ case 'payment_intent.succeeded': {
   try {
     const paymentIntent = event.data.object;
-    const paymentIntentId = paymentIntent.id;
 
-    // Get the session to find the metadata
+    // 1. Get Session for Metadata
     const sessions = await stripeInstance.checkout.sessions.list({
-      payment_intent: paymentIntentId,
+      payment_intent: paymentIntent.id,
     });
 
-    if (!sessions.data.length) {
-       console.log("No session found for this payment intent");
-       break;
+    if (sessions.data.length > 0) {
+      const session = sessions.data[0];
+      const { purchaseId } = session.metadata;
+
+      // 2. Find the purchase record
+      const purchaseData = await Purchase.findById(purchaseId);
+      if (!purchaseData) {
+        return response.status(404).json({ message: "Purchase not found" });
+      }
+
+      // Check if already processed to prevent double-enrollment
+      if (purchaseData.status === 'completed') {
+        return response.status(200).json({ message: "Already processed" });
+      }
+
+      const { courseId, userId } = purchaseData;
+
+      // 3. ATOMIC UPDATES: This is the most stable way to update arrays
+      // Update Course: Add the String userId to the enrolledStudents array
+      await Course.findByIdAndUpdate(courseId, {
+        $addToSet: { enrolledStudents: userId }
+      });
+
+      // Update User: Add the ObjectId courseId to the enrolledCourses array
+      await User.findByIdAndUpdate(userId, {
+        $addToSet: { enrolledCourses: courseId }
+      });
+
+      // 4. Update Purchase Status
+      purchaseData.status = 'completed';
+      await purchaseData.save();
+
+      console.log(`Successfully completed purchase for User: ${userId}`);
     }
-
-    const session = sessions.data[0];
-    const { purchaseId } = session.metadata;
-
-    const purchaseData = await Purchase.findById(purchaseId);
-    if (!purchaseData) {
-       console.log("Purchase document not found in DB");
-       break;
-    }
-
-    // UPDATE DATABASE USING ATOMIC OPERATORS (Prevents 500 errors)
-    // 1. Add student to Course
-    await Course.findByIdAndUpdate(purchaseData.courseId, {
-      $addToSet: { enrolledStudents: purchaseData.userId }
-    });
-
-    // 2. Add course to User
-    await User.findByIdAndUpdate(purchaseData.userId, {
-      $addToSet: { enrolledCourses: purchaseData.courseId }
-    });
-
-    // 3. Mark Purchase as completed
-    purchaseData.status = 'completed';
-    await purchaseData.save();
-
-    console.log(`Success: User ${purchaseData.userId} enrolled in Course ${purchaseData.courseId}`);
-
-  } catch (error) {
-    console.error("Database update failed:", error.message);
-    // Return a 500 so Stripe retries, or 200 if you want to stop retries
-    return response.status(500).json({ success: false, message: error.message });
+    break;
+  } catch (dbError) {
+    // If it still fails, this will tell you EXACTLY why in Vercel Logs
+    console.error("Database Update Error:", dbError.message);
+    return response.status(500).json({ error: dbError.message });
   }
-  break;
 }
   }
 
