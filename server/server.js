@@ -11,42 +11,30 @@ import userRouter from './routes/userRoutes.js';
 
 const app = express();
 
-// Connect DB & Services
+// Connect DB & Services (Top-level await Vercel Node 20+ mein chalta hai)
 await connectDB();
 await connectCloudinary();
 
-// 1. GLOBAL MIDDLEWARES (No body parsing yet)
 app.use(cors());
 app.use(clerkMiddleware());
 
-// 2. WEBHOOKS (MUST come before app.use(express.json()))
-app.post(
-  '/clerk',
-  express.raw({ type: 'application/json' }),
-  clerkWebhooks
-);
+// 1. WEBHOOKS (Yahan express.raw() hi rehne dein)
+app.post('/clerk', express.raw({ type: 'application/json' }), clerkWebhooks);
+app.post('/stripe', express.raw({ type: 'application/json' }), stripeWebhooks);
 
-// Ensure this is ABOVE app.use(express.json())
-app.post('/stripe', express.raw({type: 'application/json'}), stripeWebhooks);
-
-// 3. NOW APPLY JSON PARSING FOR ALL OTHER ROUTES
+// 2. JSON PARSING (Sirf baki routes ke liye)
 app.use(express.json());
 
-// 4. ROUTES
+// 3. ROUTES
 app.get('/', (req, res) => res.send('API Working'));
-
 app.use('/api/educator', educatorRouter);
 app.use('/api/course', courseRouter);
 app.use('/api/user', userRouter);
 
-// Port setup
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
-// This tells Vercel not to parse the body so Stripe can get the raw Buffer
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+
+// Vercel ke liye export default app zaruri hai
+export default app;
