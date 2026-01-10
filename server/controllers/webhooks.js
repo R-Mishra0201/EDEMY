@@ -66,62 +66,53 @@ export const stripeWebhooks = async (request, response) => {
   // Handle Event Types
   switch (event.type) {
     case 'payment_intent.succeeded': {
-      try {
-        const paymentIntent = event.data.object;
-        const paymentIntentId = paymentIntent.id;
+  try {
+    const paymentIntent = event.data.object;
+    const paymentIntentId = paymentIntent.id;
 
-        // Retrieve the session to get metadata
-        const sessions = await stripeInstance.checkout.sessions.list({
-          payment_intent: paymentIntentId,
-        });
+    // Get the session to find the metadata
+    const sessions = await stripeInstance.checkout.sessions.list({
+      payment_intent: paymentIntentId,
+    });
 
-        if (sessions.data.length > 0) {
-          const session = sessions.data[0];
-          const { purchaseId } = session.metadata;
-
-          const purchaseData = await Purchase.findById(purchaseId);
-          if (!purchaseData) return response.status(404).json({ message: "Purchase not found" });
-
-          const courseId = purchaseData.courseId;
-          const userId = purchaseData.userId;
-
-          // Update Course: Add User ID to enrolledStudents
-          await Course.findByIdAndUpdate(courseId, {
-            $addToSet: { enrolledStudents: userId }
-          });
-
-          // Update User: Add Course ID to enrolledCourses
-          await User.findByIdAndUpdate(userId, {
-            $addToSet: { enrolledCourses: courseId }
-          });
-
-          // Update Purchase Status
-          purchaseData.status = 'completed';
-          await purchaseData.save();
-          
-          console.log(`Purchase ${purchaseId} successfully completed for User ${userId}`);
-        }
-      } catch (dbErr) {
-        console.error("Database Update Error:", dbErr.message);
-        return response.status(500).send("Internal Server Error");
-      }
-      break;
+    if (!sessions.data.length) {
+       console.log("No session found for this payment intent");
+       break;
     }
 
-    case 'payment_intent.payment_failed': {
-      const paymentIntent = event.data.object;
-      const sessions = await stripeInstance.checkout.sessions.list({
-        payment_intent: paymentIntent.id,
-      });
-      if (sessions.data.length > 0) {
-        const { purchaseId } = sessions.data[0].metadata;
-        await Purchase.findByIdAndUpdate(purchaseId, { status: 'failed' });
-      }
-      break;
+    const session = sessions.data[0];
+    const { purchaseId } = session.metadata;
+
+    const purchaseData = await Purchase.findById(purchaseId);
+    if (!purchaseData) {
+       console.log("Purchase document not found in DB");
+       break;
     }
 
-    default:
-      console.log(`Unhandled event type ${event.type}`);
+    // UPDATE DATABASE USING ATOMIC OPERATORS (Prevents 500 errors)
+    // 1. Add student to Course
+    await Course.findByIdAndUpdate(purchaseData.courseId, {
+      $addToSet: { enrolledStudents: purchaseData.userId }
+    });
+
+    // 2. Add course to User
+    await User.findByIdAndUpdate(purchaseData.userId, {
+      $addToSet: { enrolledCourses: purchaseData.courseId }
+    });
+
+    // 3. Mark Purchase as completed
+    purchaseData.status = 'completed';
+    await purchaseData.save();
+
+    console.log(`Success: User ${purchaseData.userId} enrolled in Course ${purchaseData.courseId}`);
+
+  } catch (error) {
+    console.error("Database update failed:", error.message);
+    // Return a 500 so Stripe retries, or 200 if you want to stop retries
+    return response.status(500).json({ success: false, message: error.message });
+  }
+  break;
+}
   }
 
   response.json({ received: true });
