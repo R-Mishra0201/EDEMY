@@ -11,30 +11,34 @@ import userRouter from './routes/userRoutes.js';
 
 const app = express();
 
-// Connect DB & Services (Top-level await Vercel Node 20+ mein chalta hai)
+// Database aur Cloudinary ko connect karein
 await connectDB();
 await connectCloudinary();
 
+// Middlewares
 app.use(cors());
 app.use(clerkMiddleware());
 
-// 1. WEBHOOKS (Yahan express.raw() hi rehne dein)
+// IMPORTANT: Webhooks ko express.json() se PEHLE define karein
+// Taki inko raw body mile
 app.post('/clerk', express.raw({ type: 'application/json' }), clerkWebhooks);
 app.post('/stripe', express.raw({ type: 'application/json' }), stripeWebhooks);
 
-// 2. JSON PARSING (Sirf baki routes ke liye)
+// Ab baki routes ke liye JSON parser enable karein
 app.use(express.json());
 
-// 3. ROUTES
+// Routes
 app.get('/', (req, res) => res.send('API Working'));
 app.use('/api/educator', educatorRouter);
 app.use('/api/course', courseRouter);
 app.use('/api/user', userRouter);
 
+// Port setup (Local testing ke liye)
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
 
-// Vercel ke liye export default app zaruri hai
+// Vercel ke liye default export bahut zaruri hai
+// Aur config block ko yahan se DELETE kar dein
 export default app;
