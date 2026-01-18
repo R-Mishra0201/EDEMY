@@ -2,11 +2,10 @@ import { clerkClient } from "@clerk/express";
 import Course from "../models/Course.js";
 import {v2 as cloudinary} from 'cloudinary';
 import { Purchase } from "../models/Purchase.js";
-import User from "../models/User.js";
+import User from '../models/User.js'
 
 export const updateRoleToEducator = async (req, res) => {
   try {
-    // Calling req.auth() as a function (Fixes Deprecation Warning)
     const auth = req.auth();
 
     if (!auth || !auth.userId) {
@@ -18,7 +17,6 @@ export const updateRoleToEducator = async (req, res) => {
 
     const userId = auth.userId;
 
-    // Update user metadata
     await clerkClient.users.updateUserMetadata(userId, {
       publicMetadata: {
         role: "educator",
@@ -39,34 +37,60 @@ export const updateRoleToEducator = async (req, res) => {
   }
 };
 
-// add new course
-
 export const addCourse = async (req, res) => {
   try {
-    const {courseData} = req.body;
+    console.log('=== ADD COURSE REQUEST ===');
+    
+    const { courseData } = req.body;
     const imageFile = req.file;
     const educatorId = req.auth().userId;
-    if(!imageFile){
-      return res.json({success: false, message: "Course thumbnail is required"});
-    }
-    const parsedCourseData = await JSON.parse(courseData);
-    parsedCourseData.educator = educatorId;
-    const newCourse = await Course.create(parsedCourseData);
-    const imageUpload = await cloudinary.uploader.upload(imageFile.path);
-    newCourse.courseThumbnail = imageUpload.secure_url;
-    await newCourse.save();
 
-    res.json({success: true, message: "Course created successfully"});
+    console.log('Educator ID:', educatorId);
+    console.log('File received:', imageFile ? 'Yes' : 'No');
+
+    if (!imageFile) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Course thumbnail is required" 
+      });
+    }
+
+    console.log('Parsing course data...');
+    const parsedCourseData = JSON.parse(courseData);
+    parsedCourseData.educator = educatorId;
+
+    console.log('Uploading to Cloudinary...');
+    const imageUpload = await cloudinary.uploader.upload(imageFile.path, {
+      folder: 'courses',
+      resource_type: 'image'
+    });
+    
+    console.log('Upload successful:', imageUpload.secure_url);
+    
+    parsedCourseData.courseThumbnail = imageUpload.secure_url;
+
+    console.log('Creating course in database...');
+    const newCourse = await Course.create(parsedCourseData);
+    
+    console.log('Course created successfully!');
+
+    res.json({ 
+      success: true, 
+      message: "Course created successfully",
+      course: newCourse 
+    });
 
   } catch (error) {
-    res.status(500).json({success: false, message: error.message});
+    console.error('=== ADD COURSE ERROR ===');
+    console.error('Error:', error.message);
+    console.error('Stack:', error.stack);
+    
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
   }
-
 }
-
-
-
-//  get educator courses
 
 export const getEducatorCourses = async (req,res)=>{
   try {
@@ -78,42 +102,46 @@ export const getEducatorCourses = async (req,res)=>{
   }
 }
 
-// get educator dashboard data
-
-export const educatorDashboardData = async()=>{
+export const educatorDashboardData = async (req, res) => { 
   try {
     const educator = req.auth().userId;
-    const courses = await Course.find({educator});
+    const courses = await Course.find({ educator });
     const totalCourses = courses.length;
-    const courseIds = courses.map(course=> course._id);
-    // calculate total earnings from purchases
-    const purchases = await Purchase.find({courseId:{$in: courseIds}, status: 'completed'});
-    const totalEarnings = purchases.reduce((sum, purchase)=> sum + purchase.amount, 0);
-    // collect unique students ids with their course titles
+    
+    const courseIds = courses.map(course => course._id);
+    
+    const purchases = await Purchase.find({
+      courseId: { $in: courseIds },
+      status: 'completed'
+    });
+    const totalEarnings = purchases.reduce((sum, purchase) => sum + purchase.amount, 0);
+
     const enrolledStudentsData = [];
-    for(const course of courses){
+    for (const course of courses) {
       const students = await User.find({
         _id: { $in: course.enrolledStudents }
+      }, 'name imageUrl');
 
-      }, 'name imagerUrl');
-      students.forEach(student=>{
+      students.forEach(student => {
         enrolledStudentsData.push({
-          courseTitle : course.courseTitle,
+          courseTitle: course.courseTitle,
           student
         });
-    });
+      });
     }
-    res.json({success: true, dashboardData:{
-      totalCourses,
-      totalEarnings,
-      enrolledStudentsData
-    }});
+
+    res.json({
+      success: true,
+      dashboardData: {
+        totalCourses,
+        totalEarnings,
+        enrolledStudentsData
+      }
+    });
   } catch (error) {
-    res.status(500).json({success: false, message: error.message});
+    res.status(500).json({ success: false, message: error.message });
   }
 }
-
-// gett enrolled students data with purchase data
 
 export const getEnrolledStudentsData = async (req,res)=>{
   try {

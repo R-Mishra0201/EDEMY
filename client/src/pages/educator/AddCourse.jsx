@@ -1,9 +1,15 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import uniqid from "uniqid";
 import Quill from "quill";
 import { assets } from "../../assets/assets";
+import { AppContext } from "../../context/AppContext";
+import { toast } from "react-toastify";
+import axios from "axios";
 
 const AddCourse = () => {
+
+  const {backendURL,getToken} = useContext(AppContext)
+
   const quillRef = useRef(null);
   const editorRef = useRef(null);
 
@@ -12,13 +18,13 @@ const AddCourse = () => {
   const [discount, setDiscount] = useState(0);
   const [image, setImage] = useState(null);
   const [chapters, setChapters] = useState([]);
-  const [showPopup, setShowPopup] = useState(false); // Changed null to false
+  const [showPopup, setShowPopup] = useState(false);
   const [currentChapterId, setCurrentChapterId] = useState(null);
   
   const [lectureDetails, setLectureDetails] = useState({
     lectureTitle: "",
     lectureDuration: "",
-    lectureUrl: "",
+    lectureVideoUrl: "", // Fixed: Changed from lectureUrl to lectureVideoUrl
     isPreviewFree: false,
   });
 
@@ -43,7 +49,6 @@ const AddCourse = () => {
     } else if (action === "toggle") {
       setChapters(
         chapters.map((chapter) => {
-            // FIX 1: Added 'return' keyword here so the map updates correctly
             return chapter.chapterId === currentChapterId
             ? { ...chapter, collapsed: !chapter.collapsed }
             : chapter;
@@ -68,17 +73,19 @@ const AddCourse = () => {
     }
   };
 
-  // FIX 2: Created this function to actually save the lecture from the Popup
- 
-  
-  
-
   const addLecture = ()=>{
+    // Validate lecture details
+    if (!lectureDetails.lectureTitle || !lectureDetails.lectureDuration || !lectureDetails.lectureVideoUrl) {
+      toast.error("Please fill all lecture details");
+      return;
+    }
+
     setChapters(
       chapters.map((chapter)=>{
         if(chapter.chapterId === currentChapterId){
           const newLecture = {
             ...lectureDetails,
+            lectureDuration: Number(lectureDetails.lectureDuration), // Convert to number
             lectureOrder: chapter.chapterContent.length > 0 ? chapter.chapterContent.slice(-1)[0].lectureOrder + 1 : 1,
             lectureId: uniqid()
           };
@@ -87,17 +94,67 @@ const AddCourse = () => {
         return chapter;
       })
     )
-      setShowPopup(false);
+    setShowPopup(false);
     setLectureDetails({
       lectureTitle: "",
       lectureDuration: "",
-      lectureUrl: "",
+      lectureVideoUrl: "", // Fixed: Changed from lectureUrl
       isPreviewFree: false,
     });
   }
-    const handleSubmit = async (e) =>{
-      e.preventDefault()
+
+  const handleSubmit = async (e) => {
+    try {
+      e.preventDefault();
+      
+      if (!image) {
+        toast.error('Thumbnail not selected');
+        return;
+      }
+
+      if (chapters.length === 0) {
+        toast.error('Please add at least one chapter');
+        return;
+      }
+
+      const courseData = {
+        courseTitle,
+        courseDescription: quillRef.current.root.innerHTML,
+        coursePrice: Number(coursePrice),
+        discount: Number(discount),
+        courseContent: chapters,
+      };
+
+      const formData = new FormData();
+      formData.append('courseData', JSON.stringify(courseData));
+      formData.append('image', image);
+
+      const token = await getToken();
+      
+      const { data } = await axios.post(
+        backendURL + '/api/educator/add-course',
+        formData,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      if (data.success) {
+        toast.success(data.message);
+        setCourseTitle('');
+        setCoursePrice(0);
+        setDiscount(0);
+        setImage(null);
+        setChapters([]);
+        quillRef.current.root.innerHTML = "";
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      console.error('Submit error:', error);
+      toast.error(error.response?.data?.message || error.message);
     }
+  };
 
   useEffect(() => {
     if (!quillRef.current && editorRef.current) {
@@ -179,7 +236,7 @@ const AddCourse = () => {
           {chapters.map((chapter, chapterIndex) => (
             <div key={chapter.chapterId} className="bg-white rounded shadow-md mb-4">
               <div className="flex justify-between items-center p-4 border-b">
-                <div className="flex items-center" onClick={()=> handleChapter("toggle")}> 
+                <div className="flex items-center"> 
                   <img
                     src={assets.dropdown_icon}
                     alt=""
@@ -187,14 +244,13 @@ const AddCourse = () => {
                     className={`mr-2 cursor-pointer transition-all ${
                       chapter.collapsed && "-rotate-90"
                     }`}
-                    // Added onClick here to make toggle work
                     onClick={() => {
                         setCurrentChapterId(chapter.chapterId);
                         handleChapter("toggle");
                     }}
                   />
                   <span className="font-semibold">
-                    {chapterIndex + 1} {chapter.chapterTitle}
+                    {chapterIndex + 1}. {chapter.chapterTitle}
                   </span>
                 </div>
                 <span>{chapter.chapterContent.length} Lectures</span>
@@ -203,7 +259,7 @@ const AddCourse = () => {
                   alt=""
                   className="cursor-pointer"
                   onClick={() => {
-                      setCurrentChapterId(chapter.chapterId); // Set ID before removing
+                      setCurrentChapterId(chapter.chapterId);
                       handleChapter("remove");
                   }}
                 />
@@ -216,10 +272,10 @@ const AddCourse = () => {
                       className="flex items-center justify-between p-2 border-b mb-2"
                     >
                       <span>
-                        {lectureIndex + 1} {lecture.lectureTitle} -
+                        {lectureIndex + 1}. {lecture.lectureTitle} -
                         {lecture.lectureDuration} mins -
                         <a
-                          href={lecture.lectureUrl}
+                          href={lecture.lectureVideoUrl}
                           target="_blank"
                           rel="noreferrer"
                           className="text-blue-500"
@@ -249,7 +305,6 @@ const AddCourse = () => {
             </div>
           ))}
           
-          {/* FIX 3: Changed this to handleChapter('add') and removed invalid arguments */}
           <div
             className="flex justify-center items-center bg-blue-100 p-2 rounded-lg cursor-pointer"
             onClick={() => handleChapter("add")}
@@ -293,15 +348,15 @@ const AddCourse = () => {
                 </div>
 
                 <div className="mb-2">
-                  <p>Lecture URL</p>
+                  <p>Lecture Video URL</p>
                   <input
                     type="text"
                     className="mt-1 block w-full border rounded py-1 px-2"
-                    value={lectureDetails.lectureUrl}
+                    value={lectureDetails.lectureVideoUrl}
                     onChange={(e) =>
                       setLectureDetails({
                         ...lectureDetails,
-                        lectureUrl: e.target.value,
+                        lectureVideoUrl: e.target.value,
                       })
                     }
                   />
@@ -322,7 +377,6 @@ const AddCourse = () => {
                   />
                 </div>
 
-                {/* FIX 4: Attached the addLectureToChapter function here */}
                 <button
                   type="button"
                   onClick={addLecture}
@@ -331,7 +385,6 @@ const AddCourse = () => {
                   Add
                 </button>
                 
-                {/* FIX 5: Changed showPopup(false) to setShowPopup(false) */}
                 <img
                   src={assets.cross_icon}
                   onClick={() => setShowPopup(false)}

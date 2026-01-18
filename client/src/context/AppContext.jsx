@@ -1,13 +1,17 @@
-import { dummyCourses } from "../assets/assets";
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-refresh/only-export-components */
 import { useNavigate } from "react-router-dom";
 import humanizeDuration from "humanize-duration";
 import React, { createContext, useState, useEffect } from "react";
 import { useAuth,useUser } from "@clerk/clerk-react";
 
+import axios from "axios";
+import { toast } from "react-toastify";
+
 export const AppContext = createContext();
 export const AppContextProvider = (props) => {
 
-
+    const backendURL = import.meta.env.VITE_BACKEND_URL
     const currency = import.meta.env.VITE_CURRENCY
 
     const navigate = useNavigate();
@@ -16,14 +20,50 @@ export const AppContextProvider = (props) => {
     const {user} = useUser();
 
     const [allCourses, setAllCourses] = useState([])
-    const [isEducator, setIsEducator] = useState(true)
+    const [isEducator, setIsEducator] = useState(false)
     const [enrolledCourses, setEnrolledCourses] = useState([])
+    const [userData, setUserData] = useState(null)
+
 
 
     // fetch all courses from backend
 
     const fetchAllCourses = async () => {
-        setAllCourses(dummyCourses)
+        try {
+            const {data} = await axios.get(backendURL + '/api/course/all')
+            if(data.success){
+                setAllCourses(data.courses)
+            }else{
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.message)
+        }
+    }
+
+    // fetch user data
+    const fetchUserData = async()=>{
+
+        if(user.publicMetadata.role === 'educator'){
+            setIsEducator(true)
+        }
+
+
+        try {
+            const token = await getToken()
+            const {data} = await axios.get(backendURL + '/api/user/data',{
+                headers :{
+                    Authorization : `Bearer ${token}`
+                }
+            })
+            if(data.success){
+                setUserData(data.user)
+            }else{
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.message)
+        }
     }
     // Function to calculate average rating of course
 
@@ -35,7 +75,7 @@ export const AppContextProvider = (props) => {
         course.courseRatings.forEach(rating => {
             totalRating += rating.rating;
         });
-        return totalRating / course.courseRatings.length;
+        return Math.floor(totalRating / course.courseRatings.length);
     }
 
     // function to calculate course chapter time
@@ -67,23 +107,36 @@ export const AppContextProvider = (props) => {
 
     // Fetch User Enrolled Courses
     const fetchUserEnrolledCourses = async ()=>{
-        setEnrolledCourses(dummyCourses)
+        
+        try {
+            const token = await getToken()
+            const {data} = await axios.get(backendURL + '/api/user/enrolled-courses',{
+                headers:{Authorization : `Bearer ${token}`}
+            })
+            if(data.success){
+                setEnrolledCourses(data.enrolledCourses.reverse(0))
+            }else{
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.message)   
+        }
     }
 
     useEffect(() => {
         fetchAllCourses()
-        fetchUserEnrolledCourses()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
 
-    const logToken = async ()=>{
-        console.log( await getToken() )
-    }
+
 
     useEffect(()=>{
         if(user){
-            logToken()
+            fetchUserData()
+            fetchUserEnrolledCourses()
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     },[user])
 
     const value = {
@@ -97,7 +150,7 @@ export const AppContextProvider = (props) => {
         calculateNoOfLectures,
         calculateCourseDuration,
         enrolledCourses,
-        fetchUserEnrolledCourses
+        fetchUserEnrolledCourses,backendURL,userData,setUserData,getToken,fetchAllCourses
     }
     return(
         <AppContext.Provider value={value}>

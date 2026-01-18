@@ -1,19 +1,20 @@
 import express from 'express';
-import { addCourse,educatorDashboardData,getEducatorCourses,updateRoleToEducator,getEnrolledStudentsData } from '../controllers/educatorController.js';
-import upload from '../configs/multer.js';
-import { protectEducator } from '../middlewares/authMiddleware.js';
-import { get } from 'mongoose';
+import upload from '../configs/multer.js'; // Adjust path based on where your multer.js is
+import { 
+  addCourse, 
+  getEducatorCourses, 
+  educatorDashboardData,
+  updateRoleToEducator,
+  getEnrolledStudentsData
+} from '../controllers/educatorController.js';
+
 const educatorRouter = express.Router();
 
-// Route to add educator role
-// Endpoint: POST /api/educator/update-role
+// Routes
 educatorRouter.post('/update-role', updateRoleToEducator);
-
-educatorRouter.post('/add-course', upload.single('image'), protectEducator, addCourse);
-
-educatorRouter.get('/courses',protectEducator,getEducatorCourses)
-educatorRouter.get('/dashboard',protectEducator,educatorDashboardData)
-educatorRouter.get('/enrolled-students',protectEducator,getEnrolledStudentsData)
-
+educatorRouter.post('/add-course', upload.single('image'), addCourse); // ← Important!
+educatorRouter.get('/courses', getEducatorCourses);
+educatorRouter.get('/dashboard-data', educatorDashboardData);
+educatorRouter.get('/enrolled-students', getEnrolledStudentsData);
 
 export default educatorRouter;

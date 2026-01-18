@@ -1,22 +1,45 @@
-// Navbar.jsx
 import React, { useContext } from "react";
 import { assets } from "../../assets/assets.js";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useClerk, UserButton, useUser } from "@clerk/clerk-react";
 import { AppContext } from "../../context/AppContext.jsx";
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const Navbar = () => {
-  // ✅ Router hooks
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  // ✅ Sirf isEducator context se lo (navigate yahan se nahi aayega)
-  const { isEducator } = useContext(AppContext) || { isEducator: false };
-
+  const { isEducator, navigate, backendURL, setIsEducator, getToken } = useContext(AppContext);
+  
   const { openSignIn } = useClerk();
   const { user } = useUser();
+  const location = useLocation();
 
   const isCourseListPage = location.pathname.includes("/course-list");
+
+  // ✅ Become Educator Function
+  const becomeEducator = async () => {
+    try {
+      if (isEducator) {
+        navigate('/educator');
+        return;
+      }
+      
+      const token = await getToken();
+      // ✅ Method ko GET se POST mein change kiya
+      const { data } = await axios.post(backendURL + '/api/educator/update-role', {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (data.success) {
+        setIsEducator(true);
+        toast.success(data.message);
+        navigate('/educator');
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
 
   return (
     <div
@@ -32,53 +55,53 @@ const Navbar = () => {
         className="w-28 lg:w-32 cursor-pointer"
       />
 
-      {/* Desktop navbar */}
+      {/* Desktop Navbar */}
       <div className="hidden md:flex items-center gap-5 text-gray-500">
         <div className="flex items-center gap-5">
           {user && (
             <>
-              <button onClick={() => navigate("/educator")}>
+              <button onClick={becomeEducator} className="hover:text-gray-900 transition font-medium">
                 {isEducator ? "Educator Dashboard" : "Become Educator"}
               </button>
-              {" | "}
-              <Link to="/my-enrollments">My Enrollments</Link>
+              <span className="text-gray-400">|</span>
+              <Link to="/my-enrollments" className="hover:text-gray-900 transition">My Enrollments</Link>
             </>
           )}
         </div>
 
-        {user ? (
+        {user ? 
           <UserButton />
-        ) : (
+         : 
           <button
             onClick={() => openSignIn()}
-            className="bg-blue-600 text-white px-5 py-2 rounded-full"
+            className="bg-blue-600 text-white px-5 py-2 rounded-full hover:bg-blue-700 transition"
           >
             Create Account
           </button>
-        )}
+        }
       </div>
 
-      {/* Mobile navbar */}
+      {/* Mobile Navbar */}
       <div className="md:hidden flex items-center gap-2 sm:gap-5 text-gray-500">
         <div className="flex items-center gap-1 sm:gap-2 max-sm:text-xs">
           {user && (
             <>
-              <button onClick={() => navigate("/educator")}>
-                {isEducator ? "Educator Dashboard" : "Become Educator"}
+              <button onClick={becomeEducator} className="font-medium">
+                {isEducator ? "Dashboard" : "Become Educator"}
               </button>
-              {" | "}
-              <Link to="/my-enrollments">My Enrollments</Link>
+              <span>|</span>
+              <Link to="/my-enrollments">Enrollments</Link>
             </>
           )}
         </div>
 
-        {user ? (
+        {user ? 
           <UserButton />
-        ) : (
+         : 
           <button onClick={() => openSignIn()}>
-            <img src={assets.user_icon} alt="User icon" />
+            <img src={assets.user_icon} alt="User icon" className="w-6" />
           </button>
-        )}
+        }
       </div>
     </div>
   );
