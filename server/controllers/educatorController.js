@@ -2,7 +2,7 @@ import { clerkClient } from "@clerk/express";
 import Course from "../models/Course.js";
 import {v2 as cloudinary} from 'cloudinary';
 import { Purchase } from "../models/Purchase.js";
-import User from '../models/User.js'
+import User from "../models/User.js";
 
 export const updateRoleToEducator = async (req, res) => {
   try {
@@ -37,6 +37,7 @@ export const updateRoleToEducator = async (req, res) => {
   }
 };
 
+// ✅ CRITICAL FIX: Upload using buffer for Vercel (serverless)
 export const addCourse = async (req, res) => {
   try {
     console.log('=== ADD COURSE REQUEST ===');
@@ -47,6 +48,7 @@ export const addCourse = async (req, res) => {
 
     console.log('Educator ID:', educatorId);
     console.log('File received:', imageFile ? 'Yes' : 'No');
+    console.log('File details:', imageFile);
 
     if (!imageFile) {
       return res.status(400).json({ 
@@ -60,9 +62,27 @@ export const addCourse = async (req, res) => {
     parsedCourseData.educator = educatorId;
 
     console.log('Uploading to Cloudinary...');
-    const imageUpload = await cloudinary.uploader.upload(imageFile.path, {
-      folder: 'courses',
-      resource_type: 'image'
+    
+    // ✅ CRITICAL: For Vercel, use upload_stream with buffer (not file path)
+    const imageUpload = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'courses',
+          resource_type: 'image'
+        },
+        (error, result) => {
+          if (error) {
+            console.error('Cloudinary upload error:', error);
+            reject(error);
+          } else {
+            console.log('Cloudinary upload success:', result.secure_url);
+            resolve(result);
+          }
+        }
+      );
+      
+      // Write the file buffer to the upload stream
+      uploadStream.end(imageFile.buffer);
     });
     
     console.log('Upload successful:', imageUpload.secure_url);
@@ -98,6 +118,7 @@ export const getEducatorCourses = async (req,res)=>{
     const courses = await Course.find({educator});
     res.json({success: true, courses});
   } catch (error) {
+    console.error('Get educator courses error:', error);
     res.status(500).json({success: false, message: error.message});
   }
 }
@@ -139,6 +160,7 @@ export const educatorDashboardData = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Dashboard data error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 }
@@ -157,6 +179,7 @@ export const getEnrolledStudentsData = async (req,res)=>{
     }));
     res.json({success: true, enrolledStudents});
   } catch (error) {
-   res.status(500).json({success: false, message: error.message}); 
+    console.error('Get enrolled students error:', error);
+    res.status(500).json({success: false, message: error.message}); 
   }
 }

@@ -11,34 +11,84 @@ import userRouter from './routes/userRoutes.js';
 
 const app = express();
 
-// Database aur Cloudinary ko connect karein
-await connectDB();
-await connectCloudinary();
+// ✅ Connection caching for Vercel serverless
+let isConnected = false;
 
-// Middlewares
-app.use(cors());
+const initializeConnections = async () => {
+  if (!isConnected) {
+    try {
+      await connectDB();
+      await connectCloudinary();
+      isConnected = true;
+      console.log('🚀 All connections initialized');
+    } catch (error) {
+      console.error('❌ Connection initialization failed:', error);
+      // Don't throw in serverless - let it retry on next request
+    }
+  }
+};
+
+// Initialize connections
+await initializeConnections();
+
+// CORS configuration
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*', // Set your frontend URL in env
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Clerk middleware
 app.use(clerkMiddleware());
 
-// IMPORTANT: Webhooks ko express.json() se PEHLE define karein
-// Taki inko raw body mile
+// Webhooks (must be BEFORE express.json())
 app.post('/clerk', express.raw({ type: 'application/json' }), clerkWebhooks);
 app.post('/stripe', express.raw({ type: 'application/json' }), stripeWebhooks);
 
-// Ab baki routes ke liye JSON parser enable karein
+// JSON parser for regular routes
 app.use(express.json());
 
-// Routes
-app.get('/', (req, res) => res.send('API Working'));
+// Health check route
+app.get('/', (req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'API Working',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// API Routes
 app.use('/api/educator', educatorRouter);
 app.use('/api/course', courseRouter);
 app.use('/api/user', userRouter);
 
-// Port setup (Local testing ke liye)
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ 
+    success: false, 
+    message: `Route ${req.url} not found` 
+  });
 });
 
-// Vercel ke liye default export bahut zaruri hai
-// Aur config block ko yahan se DELETE kar dein
+// Error handler
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal server error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
+
+// Local server (only runs locally, not on Vercel)
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
+}
+
+// ✅ CRITICAL: Default export for Vercel
 export default app;
