@@ -88,24 +88,27 @@ const Dashboard = () => {
               </thead>
               <tbody className='text-sm text-gray-500'>
                 {dashboardData.enrolledStudentsData?.length > 0 ? (
-                  dashboardData.enrolledStudentsData.map((item, index) => (
-                    <tr key={index} className='border-b border-gray-500/20'>
-                      <td className='px-4 py-3 text-center hidden sm:table-cell'>
-                        {index + 1}
-                      </td>
-                      <td className='md:px-4 px-2 py-3 flex items-center space-x-3'>
-                        <img 
-                          src={item.student?.imageUrl || '/default-avatar.png'} 
-                          alt={item.student?.name || 'Student'} 
-                          className='w-9 h-9 rounded-full object-cover' 
-                        />
-                        <span className='truncate'>{item.student?.name || 'Unknown'}</span>
-                      </td>
-                      <td className='px-4 py-3 truncate'>
-                        {item.courseTitle || 'Untitled Course'}
-                      </td>
-                    </tr>
-                  ))
+                  dashboardData.enrolledStudentsData
+                    .filter(item => item && item.student) // ✅ Filter out null students
+                    .map((item, index) => (
+                      <tr key={index} className='border-b border-gray-500/20'>
+                        <td className='px-4 py-3 text-center hidden sm:table-cell'>
+                          {index + 1}
+                        </td>
+                        <td className='md:px-4 px-2 py-3 flex items-center space-x-3'>
+                          <img 
+                            src={item.student.imageUrl || 'https://via.placeholder.com/40'} 
+                            alt={item.student.name || 'Student'} 
+                            className='w-9 h-9 rounded-full object-cover' 
+                            onError={(e) => e.target.src = 'https://via.placeholder.com/40'}
+                          />
+                          <span className='truncate'>{item.student.name || 'Unknown'}</span>
+                        </td>
+                        <td className='px-4 py-3 truncate'>
+                          {item.courseTitle || 'Untitled Course'}
+                        </td>
+                      </tr>
+                    ))
                 ) : (
                   <tr>
                     <td colSpan="3" className='px-4 py-8 text-center text-gray-500'>
