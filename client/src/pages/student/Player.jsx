@@ -19,22 +19,37 @@ const Player = () => {
   const [playerData, setPlayerData] = useState(null)
   const [progressData, setProgressData] = useState(null)
   const [initialRating, setInitialRating] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
 
   const getCourseData = () => {
-    enrolledCourses.forEach((course) => {
-      if (course._id === courseId) {
-        setCourseData(course)
-        
-        // Find user's rating
-        if (course.courseRatings && Array.isArray(course.courseRatings)) {
-          course.courseRatings.forEach((item) => {
-            if (item.userId === userData?._id) {
-              setInitialRating(item.rating)
-            }
-          })
-        }
+    try {
+      setIsLoading(true)
+      
+      if (!enrolledCourses || enrolledCourses.length === 0) {
+        setIsLoading(false)
+        return
       }
-    })
+
+      enrolledCourses.forEach((course) => {
+        if (course?._id === courseId) {
+          setCourseData(course)
+          
+          // Find user's rating
+          if (course.courseRatings && Array.isArray(course.courseRatings) && userData?._id) {
+            course.courseRatings.forEach((item) => {
+              if (item?.userId === userData._id) {
+                setInitialRating(item.rating || 0)
+              }
+            })
+          }
+        }
+      })
+      
+      setIsLoading(false)
+    } catch (error) {
+      console.error('Error getting course data:', error)
+      setIsLoading(false)
+    }
   }
 
   const toggleSection = (index) => {
@@ -42,13 +57,20 @@ const Player = () => {
   };
 
   useEffect(() => {
-    if (enrolledCourses.length > 0 && courseId && userData) {
+    if (enrolledCourses && enrolledCourses.length > 0 && courseId && userData) {
       getCourseData()
+    } else {
+      setIsLoading(false)
     }
   }, [enrolledCourses, courseId, userData])
 
   const markLectureAsCompleted = async (lectureId) => {
     try {
+      if (!lectureId) {
+        toast.error('Invalid lecture ID')
+        return
+      }
+
       // Check if already completed
       if (progressData?.lectureCompleted?.includes(lectureId)) {
         toast.info('Lecture already marked as completed');
@@ -95,6 +117,11 @@ const Player = () => {
 
   const getCourseProgress = async () => {
     try {
+      if (!courseId) {
+        console.error('No course ID available')
+        return
+      }
+
       const token = await getToken()
       const { data } = await axios.post(
         backendURL + '/api/user/get-course-progress',
@@ -116,6 +143,11 @@ const Player = () => {
 
   const handleRate = async (rating) => {
     try {
+      if (!rating || !courseId) {
+        toast.error('Invalid rating or course')
+        return
+      }
+
       const token = await getToken()
       const { data } = await axios.post(
         backendURL + '/api/user/add-rating',
@@ -142,7 +174,10 @@ const Player = () => {
 
   // Extract YouTube video ID from URL
   const getYouTubeVideoId = (url) => {
-    if (!url) return null;
+    if (!url) {
+      console.warn('No URL provided to getYouTubeVideoId')
+      return null;
+    }
     
     // Handle different YouTube URL formats
     const patterns = [
@@ -157,10 +192,28 @@ const Player = () => {
       }
     }
     
+    console.warn('Could not extract video ID from URL:', url)
     return null;
   };
 
-  return courseData ? (
+  // Show loading state
+  if (isLoading) {
+    return <Loading />
+  }
+
+  // Show error if no course data
+  if (!courseData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold text-gray-800">Course not found</h2>
+          <p className="text-gray-500 mt-2">Please check your enrolled courses.</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
     <>
       <div className='p-4 sm:p-10 flex flex-col-reverse md:grid md:grid-cols-2 gap-10 md:px-36'>
         
@@ -168,64 +221,72 @@ const Player = () => {
         <div className='text-gray-800'>
           <h2 className='text-xl font-semibold'>Course Structure</h2>
           <div className="pt-5">
-            {courseData?.courseContent?.map((chapter, chapterIndex) => (
-              <div key={chapterIndex} className="border border-gray-300 bg-white mb-2 rounded">
-                <div 
-                  className="flex items-center justify-between px-4 py-3 cursor-pointer select-none" 
-                  onClick={() => toggleSection(chapterIndex)}
-                >
-                  <div className="flex items-center gap-2">
-                    <img 
-                      className={`transform transition-transform ${openSections[chapterIndex] ? 'rotate-180' : ''}`} 
-                      src={assets.down_arrow_icon} 
-                      alt="arrow icon" 
-                    />
-                    <p className="font-medium md:text-base text-sm">{chapter.chapterTitle}</p>
+            {courseData.courseContent && Array.isArray(courseData.courseContent) && courseData.courseContent.length > 0 ? (
+              courseData.courseContent.map((chapter, chapterIndex) => (
+                <div key={chapterIndex} className="border border-gray-300 bg-white mb-2 rounded">
+                  <div 
+                    className="flex items-center justify-between px-4 py-3 cursor-pointer select-none" 
+                    onClick={() => toggleSection(chapterIndex)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <img 
+                        className={`transform transition-transform ${openSections[chapterIndex] ? 'rotate-180' : ''}`} 
+                        src={assets.down_arrow_icon} 
+                        alt="arrow icon" 
+                      />
+                      <p className="font-medium md:text-base text-sm">{chapter?.chapterTitle || 'Untitled Chapter'}</p>
+                    </div>
+                    <p className="text-sm md:text-default">
+                      {chapter?.chapterContent?.length || 0} lectures - {calculateChapterTime(chapter)}
+                    </p>
                   </div>
-                  <p className="text-sm md:text-default">
-                    {chapter.chapterContent?.length || 0} lectures - {calculateChapterTime(chapter)}
-                  </p>
+                  
+                  <div className={`overflow-hidden transition-all duration-300 ${openSections[chapterIndex] ? "max-h-96 overflow-y-auto" : "max-h-0"}`}>
+                    <ul className="list-disc md:pl-10 pl-4 pr-4 py-2 text-gray-600 border-t border-gray-300">
+                      {chapter?.chapterContent && Array.isArray(chapter.chapterContent) ? (
+                        chapter.chapterContent.map((lecture, lectureIndex) => {
+                          const isCompleted = progressData?.lectureCompleted?.includes(lecture?.lectureId);
+                          
+                          return (
+                            <li key={lecture?.lectureId || lectureIndex} className="flex items-center gap-2 py-1">
+                              <img 
+                                src={isCompleted ? assets.blue_tick_icon : assets.play_icon} 
+                                alt={isCompleted ? "completed" : "play"} 
+                                className="w-4 h-4" 
+                              />
+                              <div className="flex items-center justify-between w-full text-gray-800 text-xs md:text-default">
+                                <p>{lecture?.lectureTitle || 'Untitled Lecture'}</p>
+                                <div className="flex gap-2">
+                                  {lecture?.lectureVideoUrl && (
+                                    <p 
+                                      onClick={() => {
+                                        setPlayerData({
+                                          ...lecture,
+                                          chapter: chapterIndex + 1,
+                                          lecture: lectureIndex + 1
+                                        })
+                                      }} 
+                                      className="text-blue-500 cursor-pointer hover:underline"
+                                    >
+                                      Watch
+                                    </p>
+                                  )}
+                                  <p>{humanizeDuration((lecture?.lectureDuration || 0) * 60 * 1000, { units: ["h", "m"] })}</p>
+                                </div>
+                              </div>
+                            </li>
+                          )
+                        })
+                      ) : (
+                        <li className="text-gray-500">No lectures available</li>
+                      )}
+                    </ul>
+                  </div>
                 </div>
-                
-                <div className={`overflow-hidden transition-all duration-300 ${openSections[chapterIndex] ? "max-h-96 overflow-y-auto" : "max-h-0"}`}>
-                  <ul className="list-disc md:pl-10 pl-4 pr-4 py-2 text-gray-600 border-t border-gray-300">
-                    {chapter.chapterContent?.map((lecture, lectureIndex) => {
-                      const isCompleted = progressData?.lectureCompleted?.includes(lecture.lectureId);
-                      
-                      return (
-                        <li key={lecture.lectureId} className="flex items-center gap-2 py-1">
-                          <img 
-                            src={isCompleted ? assets.blue_tick_icon : assets.play_icon} 
-                            alt={isCompleted ? "completed" : "play"} 
-                            className="w-4 h-4" 
-                          />
-                          <div className="flex items-center justify-between w-full text-gray-800 text-xs md:text-default">
-                            <p>{lecture.lectureTitle}</p>
-                            <div className="flex gap-2">
-                              {lecture.lectureVideoUrl && (
-                                <p 
-                                  onClick={() => {
-                                    setPlayerData({
-                                      ...lecture,
-                                      chapter: chapterIndex + 1,
-                                      lecture: lectureIndex + 1
-                                    })
-                                  }} 
-                                  className="text-blue-500 cursor-pointer hover:underline"
-                                >
-                                  Watch
-                                </p>
-                              )}
-                              <p>{humanizeDuration(lecture.lectureDuration * 60 * 1000, { units: ["h", "m"] })}</p>
-                            </div>
-                          </div>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-gray-500">No course content available</p>
+            )}
           </div>
 
           <div className='flex items-center gap-2 py-3 mt-10'>
@@ -236,7 +297,7 @@ const Player = () => {
 
         {/* --- Right Column: Player --- */}
         <div className='md:mt-10'>
-          {playerData ? (
+          {playerData && playerData.lectureVideoUrl ? (
             <div className='w-full'>
               <YouTube
                 key={playerData.lectureId}
@@ -256,7 +317,7 @@ const Player = () => {
 
               <div className='flex justify-between items-center mt-4 flex-wrap gap-2'>
                 <p className='text-xl font-bold'>
-                  {playerData.chapter}.{playerData.lecture} {playerData.lectureTitle}
+                  {playerData.chapter}.{playerData.lecture} {playerData.lectureTitle || 'Untitled Lecture'}
                 </p>
                 <button
                   key={`btn-${playerData.lectureId}`}
@@ -288,7 +349,7 @@ const Player = () => {
       </div>
       <Footer />
     </>
-  ) : <Loading />
+  )
 }
 
 export default Player
