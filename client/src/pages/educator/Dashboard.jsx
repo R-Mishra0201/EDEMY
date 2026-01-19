@@ -14,14 +14,35 @@ const Dashboard = () => {
     try {
       const token = await getToken();
       
-      // ✅ FIXED: Changed '/api/educator/dashboard' to '/api/educator/dashboard-data'
       const { data } = await axios.get(
         backendURL + '/api/educator/dashboard-data',
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
       if (data.success) {
-        setDashboardData(data.dashboardData);
+        // ✅ CRITICAL: Sanitize data before setting state
+        const sanitizedData = {
+          totalCourses: data.dashboardData?.totalCourses || 0,
+          totalEarnings: data.dashboardData?.totalEarnings || 0,
+          enrolledStudentsData: (data.dashboardData?.enrolledStudentsData || [])
+            .filter(item => {
+              // Only include items with valid student data
+              return item && 
+                     item.student && 
+                     item.student.name && 
+                     typeof item.student.name === 'string';
+            })
+            .map(item => ({
+              courseTitle: item.courseTitle || 'Untitled Course',
+              student: {
+                _id: item.student._id || '',
+                name: item.student.name || 'Unknown Student',
+                imageUrl: item.student.imageUrl || 'https://via.placeholder.com/40'
+              }
+            }))
+        };
+        
+        setDashboardData(sanitizedData);
       } else {
         toast.error(data.message);
       }
@@ -37,7 +58,12 @@ const Dashboard = () => {
     }
   }, [isEducator]);
 
-  return dashboardData ? (
+  // ✅ Early return if no data
+  if (!dashboardData) {
+    return <Loading />;
+  }
+
+  return (
     <div className='min-h-screen flex flex-col items-start justify-between gap-8 md:p-8 md:pb-0 p-4 pt-8 pb-0'>
       <div className='space-y-5 w-full'>
         
@@ -47,7 +73,7 @@ const Dashboard = () => {
             <img src={assets.patients_icon} alt="students icon" className='w-12 h-12' />
             <div>
               <p className='text-2xl font-medium text-gray-600'>
-                {dashboardData.enrolledStudentsData?.length || 0}
+                {dashboardData.enrolledStudentsData.length}
               </p>
               <p className='text-base text-gray-500'>Total Enrolments</p>
             </div>
@@ -57,7 +83,7 @@ const Dashboard = () => {
             <img src={assets.appointments_icon} alt="courses icon" className='w-12 h-12' />
             <div>
               <p className='text-2xl font-medium text-gray-600'>
-                {dashboardData.totalCourses || 0}
+                {dashboardData.totalCourses}
               </p>
               <p className='text-base text-gray-500'>Total Courses</p>
             </div>
@@ -67,7 +93,7 @@ const Dashboard = () => {
             <img src={assets.earning_icon} alt="earnings icon" className='w-12 h-12' />
             <div>
               <p className='text-2xl font-medium text-gray-600'>
-                {currency}{dashboardData.totalEarnings || 0}
+                {currency}{dashboardData.totalEarnings}
               </p>
               <p className='text-base text-gray-500'>Total Earnings</p>
             </div>
@@ -87,28 +113,29 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody className='text-sm text-gray-500'>
-                {dashboardData.enrolledStudentsData?.length > 0 ? (
-                  dashboardData.enrolledStudentsData
-                    .filter(item => item && item.student) // ✅ Filter out null students
-                    .map((item, index) => (
-                      <tr key={index} className='border-b border-gray-500/20'>
-                        <td className='px-4 py-3 text-center hidden sm:table-cell'>
-                          {index + 1}
-                        </td>
-                        <td className='md:px-4 px-2 py-3 flex items-center space-x-3'>
-                          <img 
-                            src={item.student.imageUrl || 'https://via.placeholder.com/40'} 
-                            alt={item.student.name || 'Student'} 
-                            className='w-9 h-9 rounded-full object-cover' 
-                            onError={(e) => e.target.src = 'https://via.placeholder.com/40'}
-                          />
-                          <span className='truncate'>{item.student.name || 'Unknown'}</span>
-                        </td>
-                        <td className='px-4 py-3 truncate'>
-                          {item.courseTitle || 'Untitled Course'}
-                        </td>
-                      </tr>
-                    ))
+                {dashboardData.enrolledStudentsData.length > 0 ? (
+                  dashboardData.enrolledStudentsData.map((item, index) => (
+                    <tr key={item.student._id || index} className='border-b border-gray-500/20'>
+                      <td className='px-4 py-3 text-center hidden sm:table-cell'>
+                        {index + 1}
+                      </td>
+                      <td className='md:px-4 px-2 py-3 flex items-center space-x-3'>
+                        <img 
+                          src={item.student.imageUrl} 
+                          alt={item.student.name} 
+                          className='w-9 h-9 rounded-full object-cover' 
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = 'https://via.placeholder.com/40';
+                          }}
+                        />
+                        <span className='truncate'>{item.student.name}</span>
+                      </td>
+                      <td className='px-4 py-3 truncate'>
+                        {item.courseTitle}
+                      </td>
+                    </tr>
+                  ))
                 ) : (
                   <tr>
                     <td colSpan="3" className='px-4 py-8 text-center text-gray-500'>
@@ -123,7 +150,7 @@ const Dashboard = () => {
 
       </div>
     </div>
-  ) : <Loading />
+  );
 }
 
 export default Dashboard
