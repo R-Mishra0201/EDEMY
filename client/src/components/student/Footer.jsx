@@ -21,9 +21,6 @@ const Footer = () => {
           <h2 className="text-white font-semibold mb-5">Company</h2>
           <ul className="flex md:flex-col w-full md:items-start items-center text-sm text-white/80 md:space-y-2 gap-3 md:gap-0">
             <li className="hover:text-white transition cursor-pointer"><a href="">Home</a></li>
-            <li className="hover:text-white transition cursor-pointer"><a href="">About Us</a></li>
-            <li className="hover:text-white transition cursor-pointer"><a href="">Contact Us</a></li>
-            <li className="hover:text-white transition cursor-pointer"><a href="">Privacy Policy</a></li>
           </ul>
         </div>
 
@@ -49,7 +46,7 @@ const Footer = () => {
       </div>
 
       <p className="py-4 text-center text-xs md:text-sm text-white/60">
-        Copyright © 2025 Rahul. All rights reserved.
+        Copyright © 2026 Edemy-Rahul Mishra. All rights reserved.
       </p>
     </footer>
   );
