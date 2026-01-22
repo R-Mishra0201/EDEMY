@@ -87,14 +87,16 @@ const SearchBar = ({ data }) => {
             text-xs sm:text-sm md:text-base
             font-medium
             rounded-lg sm:rounded-xl
-            px-3 sm:px-5 md:px-6
-            py-2 sm:py-2.5
+            px-2.5 sm:px-5 md:px-6
+            py-1.5 sm:py-2.5
             mr-1.5 sm:mr-2
             hover:bg-blue-700 active:bg-blue-800
             disabled:bg-gray-300 disabled:cursor-not-allowed
             transition-all duration-200
             transform hover:scale-105 active:scale-95
             shadow-sm hover:shadow-md
+            whitespace-nowrap
+            flex-shrink-0
           "
         >
           <span className="hidden sm:inline">Search</span>
