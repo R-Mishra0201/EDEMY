@@ -1,5 +1,5 @@
 import React from 'react'
-import { Route, Routes, useLocation } from 'react-router-dom' // 1. Import useLocation
+import { Route, Routes, useLocation } from 'react-router-dom' 
 import Home from './pages/student/Home.jsx'
 import CoursesList from './pages/student/CoursesList.jsx'
 import CourseDetails from './pages/student/CourseDetails.jsx'
@@ -14,14 +14,13 @@ import StudentsEnrolled from './pages/educator/StudentsEnrolled.jsx'
 import Navbar from './components/student/Navbar.jsx'
 import "quill/dist/quill.snow.css";
 import { ToastContainer} from 'react-toastify';
-import Quiz from './components/student/Quiz.jsx';
+
+// 1. IMPORT THE QUIZ COMPONENT HERE
+import Quiz from './components/student/Quiz.jsx'; 
 
 const App = () => {
 
-  // 2. Get the current location
   const location = useLocation()
-  
-  // 3. Check if the current path is an educator path
   const isEducatorRoute = location.pathname.startsWith('/educator')
 
   return (
@@ -37,6 +36,9 @@ const App = () => {
         <Route path="/my-enrollments" element={<MyEnrollments />} />
         <Route path='/player/:courseId' element={<Player />} />
         <Route path="/loading/:path" element={<Loading />} />
+
+        {/* 2. ADD THIS ROUTE LINE HERE */}
+        <Route path="/quiz" element={<Quiz />} />
         
         {/* Educator Routes */}
         <Route path='/educator' element={<Educator />}>
