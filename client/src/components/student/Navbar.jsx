@@ -12,23 +12,18 @@ const Navbar = () => {
   const { openSignIn } = useClerk();
   const { user } = useUser();
   const location = useLocation();
-
   const isCourseListPage = location.pathname.includes("/course-list");
 
-  // ✅ Become Educator Function
   const becomeEducator = async () => {
     try {
       if (isEducator) {
         navigate('/educator');
         return;
       }
-      
       const token = await getToken();
-      // ✅ Method ko GET se POST mein change kiya
       const { data } = await axios.post(backendURL + '/api/educator/update-role', {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-
       if (data.success) {
         setIsEducator(true);
         toast.success(data.message);
@@ -65,13 +60,20 @@ const Navbar = () => {
               </button>
               <span className="text-gray-400">|</span>
               <Link to="/my-enrollments" className="hover:text-gray-900 transition">My Enrollments</Link>
+              <span className="text-gray-400">|</span>
+              {/* ✅ Quiz Button - Desktop */}
+              <Link
+                to="/quiz"
+                className="hover:text-gray-900 transition font-medium"
+              >
+                Quiz
+              </Link>
             </>
           )}
         </div>
-
-        {user ? 
+        {user ?
           <UserButton />
-         : 
+         :
           <button
             onClick={() => openSignIn()}
             className="bg-blue-600 text-white px-5 py-2 rounded-full hover:bg-blue-700 transition"
@@ -91,13 +93,15 @@ const Navbar = () => {
               </button>
               <span>|</span>
               <Link to="/my-enrollments">Enrollments</Link>
+              <span>|</span>
+              {/* ✅ Quiz Button - Mobile */}
+              <Link to="/quiz">Quiz</Link>
             </>
           )}
         </div>
-
-        {user ? 
+        {user ?
           <UserButton />
-         : 
+         :
           <button onClick={() => openSignIn()}>
             <img src={assets.user_icon} alt="User icon" className="w-6" />
           </button>
