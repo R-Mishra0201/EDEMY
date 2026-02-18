@@ -6,9 +6,10 @@ const Quiz = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [showScore, setShowScore] = useState(false);
   const [score, setScore] = useState(0);
+  const [questions, setQuestions] = useState([]);
   const canvasRef = useRef(null);
 
-  const questions = [
+  const questionPool = [
     {
       questionText: 'What is the primary function of React.js?',
       answerOptions: [
@@ -28,7 +29,7 @@ const Quiz = () => {
       ],
     },
     {
-      questionText: 'Which command is used to create a new React app?',
+      questionText: 'Which command creates a new React app?',
       answerOptions: [
         { answerText: 'npm install react', isCorrect: false },
         { answerText: 'npx create-react-app my-app', isCorrect: true },
@@ -54,7 +55,192 @@ const Quiz = () => {
         { answerText: 'Context', isCorrect: false },
       ],
     },
+    {
+      questionText: 'What is JSX?',
+      answerOptions: [
+        { answerText: 'A database query language', isCorrect: false },
+        { answerText: 'JavaScript XML – a syntax extension for React', isCorrect: true },
+        { answerText: 'A CSS framework', isCorrect: false },
+        { answerText: 'A Node.js module', isCorrect: false },
+      ],
+    },
+    {
+      questionText: 'Which method updates state in a class component?',
+      answerOptions: [
+        { answerText: 'this.state()', isCorrect: false },
+        { answerText: 'this.updateState()', isCorrect: false },
+        { answerText: 'this.setState()', isCorrect: true },
+        { answerText: 'this.changeState()', isCorrect: false },
+      ],
+    },
+    {
+      questionText: 'What does npm stand for?',
+      answerOptions: [
+        { answerText: 'Node Package Manager', isCorrect: true },
+        { answerText: 'New Programming Method', isCorrect: false },
+        { answerText: 'Node Process Manager', isCorrect: false },
+        { answerText: 'Network Package Module', isCorrect: false },
+      ],
+    },
+    {
+      questionText: 'Which HTTP method sends data to a server?',
+      answerOptions: [
+        { answerText: 'GET', isCorrect: false },
+        { answerText: 'DELETE', isCorrect: false },
+        { answerText: 'POST', isCorrect: true },
+        { answerText: 'FETCH', isCorrect: false },
+      ],
+    },
+    {
+      questionText: 'What is the virtual DOM?',
+      answerOptions: [
+        { answerText: 'A direct copy of the real DOM', isCorrect: false },
+        { answerText: 'A lightweight in-memory representation of the real DOM', isCorrect: true },
+        { answerText: 'A server-side rendering engine', isCorrect: false },
+        { answerText: 'A CSS rendering tool', isCorrect: false },
+      ],
+    },
+    {
+      questionText: 'Which company developed React.js?',
+      answerOptions: [
+        { answerText: 'Google', isCorrect: false },
+        { answerText: 'Microsoft', isCorrect: false },
+        { answerText: 'Facebook (Meta)', isCorrect: true },
+        { answerText: 'Twitter', isCorrect: false },
+      ],
+    },
+    {
+      questionText: 'What is MongoDB?',
+      answerOptions: [
+        { answerText: 'A relational database', isCorrect: false },
+        { answerText: 'A NoSQL document database', isCorrect: true },
+        { answerText: 'A front-end framework', isCorrect: false },
+        { answerText: 'A CSS preprocessor', isCorrect: false },
+      ],
+    },
+    {
+      questionText: 'What is Express.js used for?',
+      answerOptions: [
+        { answerText: 'Styling React components', isCorrect: false },
+        { answerText: 'Building server-side web applications with Node.js', isCorrect: true },
+        { answerText: 'Managing state in React', isCorrect: false },
+        { answerText: 'Creating mobile apps', isCorrect: false },
+      ],
+    },
+    {
+      questionText: 'Which keyword declares a constant in JavaScript?',
+      answerOptions: [
+        { answerText: 'var', isCorrect: false },
+        { answerText: 'let', isCorrect: false },
+        { answerText: 'const', isCorrect: true },
+        { answerText: 'define', isCorrect: false },
+      ],
+    },
+    {
+      questionText: 'What does REST stand for?',
+      answerOptions: [
+        { answerText: 'Representational State Transfer', isCorrect: true },
+        { answerText: 'Remote Execution of Server Tasks', isCorrect: false },
+        { answerText: 'React Element State Tree', isCorrect: false },
+        { answerText: 'Relational Endpoint Schema Transfer', isCorrect: false },
+      ],
+    },
+    {
+      questionText: 'What is the default port for a React development server?',
+      answerOptions: [
+        { answerText: '8080', isCorrect: false },
+        { answerText: '5000', isCorrect: false },
+        { answerText: '3000', isCorrect: true },
+        { answerText: '4200', isCorrect: false },
+      ],
+    },
+    {
+      questionText: 'Which of these is used to manage global state in React?',
+      answerOptions: [
+        { answerText: 'useEffect', isCorrect: false },
+        { answerText: 'useRef', isCorrect: false },
+        { answerText: 'Context API / Redux', isCorrect: true },
+        { answerText: 'useCallback', isCorrect: false },
+      ],
+    },
+    {
+      questionText: 'What is a React component?',
+      answerOptions: [
+        { answerText: 'A CSS class', isCorrect: false },
+        { answerText: 'A reusable piece of UI', isCorrect: true },
+        { answerText: 'A database model', isCorrect: false },
+        { answerText: 'An HTTP request handler', isCorrect: false },
+      ],
+    },
+    {
+      questionText: 'Which hook lets you access a DOM element directly?',
+      answerOptions: [
+        { answerText: 'useState', isCorrect: false },
+        { answerText: 'useEffect', isCorrect: false },
+        { answerText: 'useRef', isCorrect: true },
+        { answerText: 'useMemo', isCorrect: false },
+      ],
+    },
+    {
+      questionText: 'What does JSON stand for?',
+      answerOptions: [
+        { answerText: 'JavaScript Object Notation', isCorrect: true },
+        { answerText: 'Java Serialized Object Network', isCorrect: false },
+        { answerText: 'JavaScript Online Node', isCorrect: false },
+        { answerText: 'Java Standard Object Naming', isCorrect: false },
+      ],
+    },
+    {
+      questionText: 'Which Node.js function is used to import modules?',
+      answerOptions: [
+        { answerText: 'import()', isCorrect: false },
+        { answerText: 'fetch()', isCorrect: false },
+        { answerText: 'require()', isCorrect: true },
+        { answerText: 'load()', isCorrect: false },
+      ],
+    },
+    {
+      questionText: 'What is the purpose of the key prop in React lists?',
+      answerOptions: [
+        { answerText: 'To style list items', isCorrect: false },
+        { answerText: 'To help React identify which items changed', isCorrect: true },
+        { answerText: 'To pass data between components', isCorrect: false },
+        { answerText: 'To trigger re-renders', isCorrect: false },
+      ],
+    },
+    {
+      questionText: 'What is Mongoose in the MERN stack?',
+      answerOptions: [
+        { answerText: 'A React UI library', isCorrect: false },
+        { answerText: 'An ODM library for MongoDB and Node.js', isCorrect: true },
+        { answerText: 'A CSS framework', isCorrect: false },
+        { answerText: 'A testing framework', isCorrect: false },
+      ],
+    },
+    {
+      questionText: 'Which array method returns a new transformed array in JavaScript?',
+      answerOptions: [
+        { answerText: 'forEach()', isCorrect: false },
+        { answerText: 'filter()', isCorrect: false },
+        { answerText: 'map()', isCorrect: true },
+        { answerText: 'reduce()', isCorrect: false },
+      ],
+    },
+    {
+      questionText: 'What does CORS stand for?',
+      answerOptions: [
+        { answerText: 'Cross-Origin Resource Sharing', isCorrect: true },
+        { answerText: 'Client-Origin Request System', isCorrect: false },
+        { answerText: 'Cross-Object Routing Schema', isCorrect: false },
+        { answerText: 'Component-Origin React Service', isCorrect: false },
+      ],
+    },
   ];
+
+  const shuffleAndPick = () => {
+    const shuffled = [...questionPool].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 5);
+  };
 
   const handleAnswerOptionClick = (isCorrect) => {
     if (isCorrect) setScore(score + 1);
@@ -118,7 +304,10 @@ const Quiz = () => {
 
   const handleStartQuiz = (e) => {
     e.preventDefault();
-    if (studentName.trim()) setQuizStarted(true);
+    if (studentName.trim()) {
+      setQuestions(shuffleAndPick());
+      setQuizStarted(true);
+    }
   };
 
   const restartQuiz = () => {
@@ -127,9 +316,9 @@ const Quiz = () => {
     setShowScore(false);
     setQuizStarted(false);
     setStudentName('');
+    setQuestions([]);
   };
 
-  // ✅ NEW: Download certificate as PNG
   const downloadCertificate = () => {
     const canvas = canvasRef.current;
     const link = document.createElement('a');
@@ -232,7 +421,6 @@ const Quiz = () => {
                 />
               </div>
 
-              {/* ✅ NEW: Download Button */}
               <button
                 style={{ ...styles.button, backgroundColor: '#10b981', marginTop: '15px' }}
                 onClick={downloadCertificate}
@@ -254,11 +442,11 @@ const Quiz = () => {
                   Question {currentQuestion + 1} / {questions.length}
                 </span>
                 <div style={styles.questionText}>
-                  {questions[currentQuestion].questionText}
+                  {questions[currentQuestion]?.questionText}
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {questions[currentQuestion].answerOptions.map((answerOption, index) => (
+                {questions[currentQuestion]?.answerOptions.map((answerOption, index) => (
                   <button
                     key={index}
                     style={styles.button}
