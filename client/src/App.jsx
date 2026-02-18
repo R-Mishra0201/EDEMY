@@ -14,6 +14,7 @@ import StudentsEnrolled from './pages/educator/StudentsEnrolled.jsx'
 import Navbar from './components/student/Navbar.jsx'
 import "quill/dist/quill.snow.css";
 import { ToastContainer} from 'react-toastify';
+import Quiz from './components/student/Quiz.jsx';
 
 const App = () => {
 
