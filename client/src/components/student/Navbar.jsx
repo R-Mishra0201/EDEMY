@@ -42,13 +42,21 @@ const Navbar = () => {
         isCourseListPage ? "bg-white" : "bg-cyan-100/70"
       }`}
     >
-      {/* Logo */}
-      <img
+      {/* ✅ Styled Text Logo */}
+      <div
         onClick={() => navigate("/")}
-        src={assets.logo}
-        alt="Logo"
-        className="w-28 lg:w-32 cursor-pointer"
-      />
+        className="cursor-pointer flex flex-col leading-tight"
+      >
+        <span className="text-blue-700 font-extrabold text-sm sm:text-base lg:text-lg tracking-wide uppercase">
+          Intelligent E-Learning
+        </span>
+        <span className="text-cyan-600 font-semibold text-xs sm:text-sm lg:text-base tracking-widest uppercase">
+          Management System
+        </span>
+        <span className="text-gray-400 font-medium text-xs tracking-widest uppercase">
+          (LMS)
+        </span>
+      </div>
 
       {/* Desktop Navbar */}
       <div className="hidden md:flex items-center gap-5 text-gray-500">
@@ -61,11 +69,7 @@ const Navbar = () => {
               <span className="text-gray-400">|</span>
               <Link to="/my-enrollments" className="hover:text-gray-900 transition">My Enrollments</Link>
               <span className="text-gray-400">|</span>
-              {/* ✅ Quiz Button - Desktop */}
-              <Link
-                to="/quiz"
-                className="hover:text-gray-900 transition font-medium"
-              >
+              <Link to="/quiz" className="hover:text-gray-900 transition font-medium">
                 Quiz
               </Link>
             </>
@@ -94,7 +98,6 @@ const Navbar = () => {
               <span>|</span>
               <Link to="/my-enrollments">Enrollments</Link>
               <span>|</span>
-              {/* ✅ Quiz Button - Mobile */}
               <Link to="/quiz">Quiz</Link>
             </>
           )}
