@@ -80,25 +80,29 @@ const SearchBar = ({ data }) => {
         )}
 
         <button
-          type="submit"
-          disabled={!input.trim()}
-          className="
-            bg-blue-600 text-white
-            text-xs sm:text-sm md:text-base
-            font-medium
-            rounded-lg sm:rounded-xl
-            px-2.5 sm:px-5 md:px-6
-            py-1.5 sm:py-2.5
-            mr-1.5 sm:mr-2
-            hover:bg-blue-700 active:bg-blue-800
-            disabled:bg-gray-300 disabled:cursor-not-allowed
-            transition-all duration-200
-            transform hover:scale-105 active:scale-95
-            shadow-sm hover:shadow-md
-            whitespace-nowrap
-            flex-shrink-0
-          "
-        >
+  type="submit"
+  disabled={!input.trim()}
+  className="
+    bg-blue-600 text-white
+    text-xs sm:text-sm md:text-base
+    font-medium
+    rounded-lg sm:rounded-xl
+    px-2 sm:px-5 md:px-6        {/* was px-2.5 */}
+    py-1.5 sm:py-2.5
+    mr-1 sm:mr-2                {/* was mr-1.5 */}
+    hover:bg-blue-700 active:bg-blue-800
+    disabled:bg-gray-300 disabled:cursor-not-allowed
+    transition-all duration-200
+    transform hover:scale-105 active:scale-95
+    shadow-sm hover:shadow-md
+    whitespace-nowrap
+    flex-shrink-0
+    min-w-0                     {/* add this */}
+  "
+>
+  <span className="hidden sm:inline">Search</span>
+  <span className="sm:hidden text-xs px-0.5">Go</span>  {/* add text-xs px-0.5 */}
+</button>
           <span className="hidden sm:inline">Search</span>
           <span className="sm:hidden">Go</span>
         </button>
