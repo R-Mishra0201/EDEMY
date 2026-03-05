@@ -29,7 +29,7 @@ const SearchBar = ({ data }) => {
           bg-white border-2 rounded-xl sm:rounded-2xl
           shadow-sm hover:shadow-md
           transition-all duration-300 ease-in-out
-          ${isFocused ? 'border-blue-500 shadow-lg ring-2 ring-blue-200' : 'border-gray-300'}
+          ${isFocused ? "border-blue-500 shadow-lg ring-2 ring-blue-200" : "border-gray-300"}
         `}
       >
         <img
@@ -39,10 +39,10 @@ const SearchBar = ({ data }) => {
             w-5 h-5 sm:w-6 sm:h-6
             mx-3 sm:mx-4
             transition-transform duration-300
-            ${isFocused ? 'scale-110' : 'scale-100'}
+            ${isFocused ? "scale-110" : "scale-100"}
           `}
         />
-        
+
         <input
           onChange={(e) => setInput(e.target.value)}
           onFocus={() => setIsFocused(true)}
@@ -74,37 +74,38 @@ const SearchBar = ({ data }) => {
             aria-label="Clear search"
           >
             <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
             </svg>
           </button>
         )}
 
         <button
-  type="submit"
-  disabled={!input.trim()}
-  className="
-    bg-blue-600 text-white
-    text-xs sm:text-sm md:text-base
-    font-medium
-    rounded-lg sm:rounded-xl
-    px-2 sm:px-5 md:px-6        {/* was px-2.5 */}
-    py-1.5 sm:py-2.5
-    mr-1 sm:mr-2                {/* was mr-1.5 */}
-    hover:bg-blue-700 active:bg-blue-800
-    disabled:bg-gray-300 disabled:cursor-not-allowed
-    transition-all duration-200
-    transform hover:scale-105 active:scale-95
-    shadow-sm hover:shadow-md
-    whitespace-nowrap
-    flex-shrink-0
-    min-w-0                     {/* add this */}
-  "
->
-  <span className="hidden sm:inline">Search</span>
-  <span className="sm:hidden text-xs px-0.5">Go</span>  {/* add text-xs px-0.5 */}
-</button>
+          type="submit"
+          disabled={!input.trim()}
+          className="
+            bg-blue-600 text-white
+            text-xs sm:text-sm md:text-base
+            font-medium
+            rounded-lg sm:rounded-xl
+            px-2 sm:px-5 md:px-6
+            py-1.5 sm:py-2.5
+            mr-1 sm:mr-2
+            hover:bg-blue-700 active:bg-blue-800
+            disabled:bg-gray-300 disabled:cursor-not-allowed
+            transition-all duration-200
+            transform hover:scale-105 active:scale-95
+            shadow-sm hover:shadow-md
+            whitespace-nowrap
+            flex-shrink-0
+            min-w-0
+          "
+        >
           <span className="hidden sm:inline">Search</span>
-          <span className="sm:hidden">Go</span>
+          <span className="sm:hidden text-xs px-0.5">Go</span>
         </button>
       </form>
     </div>
