@@ -1,4 +1,4 @@
-name: Backend CI
+name: Edemy Full-Stack CI Pipeline
 
 on:
   push:
@@ -7,33 +7,72 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  # ==========================================
+  # JOB 1: BACKEND (SERVER) PIPELINE
+  # ==========================================
+  server-ci:
+    name: Build & Test Server
     runs-on: ubuntu-latest
     
-    # 1. THE FIX: Yahan hum explicitly default directory set kar rahe hain
+    # Global directory set for this specific job
     defaults:
       run:
-        working-directory: ./backend 
+        working-directory: ./server
 
     strategy:
       matrix:
         node-version: [18.x, 20.x, 22.x]
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout Code Repository
+      uses: actions/checkout@v4
     
-    - name: Use Node.js ${{ matrix.node-version }}
+    - name: Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-        # 2. THE FIX: Caching system ko lock file ka exact path dena zaroori hai
-        cache-dependency-path: './backend/package-lock.json' 
+        cache-dependency-path: './server/package-lock.json'
         
-    - name: Install Dependencies
+    - name: Install Server Dependencies (Clean Install)
       run: npm ci
       
-    - name: Build and Test
+    - name: Compile and Run Server Tests
+      run: |
+        npm run build --if-present
+        npm test --if-present
+
+  # ==========================================
+  # JOB 2: FRONTEND (CLIENT) PIPELINE
+  # ==========================================
+  client-ci:
+    name: Build & Test Client
+    runs-on: ubuntu-latest
+    
+    # Global directory set for this specific job
+    defaults:
+      run:
+        working-directory: ./client
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+
+    steps:
+    - name: Checkout Code Repository
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: './client/package-lock.json'
+        
+    - name: Install Client Dependencies (Clean Install)
+      run: npm ci
+      
+    - name: Compile Next.js/React and Run Tests
       run: |
         npm run build --if-present
         npm test --if-present
