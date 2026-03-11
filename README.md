@@ -6,8 +6,36 @@ A full-stack Learning Management System (LMS) built with a **React + Vite** fron
 
 ```text
 EDEMY/
-├─ client/   # React (Vite) frontend
-└─ server/   # Express API + MongoDB models/controllers
+├─ README.md
+├─ client/                         # React (Vite) frontend
+│  ├─ package.json
+│  ├─ vite.config.js
+│  ├─ tailwind.config.js
+│  ├─ vercel.json
+│  ├─ public/
+│  │  └─ vite.svg
+│  └─ src/
+│     ├─ App.jsx
+│     ├─ main.jsx
+│     ├─ index.css
+│     ├─ assets/                  # Logos, icons, images, static UI assets
+│     ├─ components/
+│     │  ├─ educator/             # Educator layout/navigation components
+│     │  └─ student/              # Student-facing reusable components
+│     ├─ context/
+│     │  └─ AppContext.jsx        # Global app state + API helpers
+│     └─ pages/
+│        ├─ educator/             # Dashboard, add course, course management
+│        └─ student/              # Home, course list/detail, player, enrollments
+└─ server/                         # Express backend API
+   ├─ server.js                    # App entrypoint + middleware + route mounting
+   ├─ package.json
+   ├─ vercel.json
+   ├─ configs/                     # DB, Cloudinary, Multer config
+   ├─ controllers/                 # Route handlers + webhook logic
+   ├─ middlewares/                 # Auth middleware helpers
+   ├─ models/                      # Mongoose schemas/models
+   └─ routes/                      # API route modules
 ```
 
 ## Core Features
